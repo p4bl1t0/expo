@@ -6,12 +6,13 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.PorterDuff
-import android.graphics.Shader
+import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.core.graphics.transform
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
-import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.DrawableImageViewTarget
@@ -21,10 +22,12 @@ import com.facebook.react.modules.i18nmanager.I18nUtil
 import com.facebook.react.uimanager.PixelUtil
 import com.facebook.react.views.view.ReactViewBackgroundDrawable
 import expo.modules.image.drawing.OutlineProvider
-import expo.modules.image.enums.ImageResizeMode
+import expo.modules.image.enums.ContentFit
+import expo.modules.image.enums.Priority
 import expo.modules.image.events.GlideRequestListener
 import expo.modules.image.events.OkHttpProgressListener
 import expo.modules.image.okhttp.OkHttpClientProgressInterceptor
+import expo.modules.image.records.ContentPosition
 import expo.modules.image.records.ImageErrorEvent
 import expo.modules.image.records.ImageLoadEvent
 import expo.modules.image.records.ImageProgressEvent
@@ -35,6 +38,8 @@ import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 import jp.wasabeef.glide.transformations.BlurTransformation
 import java.lang.ref.WeakReference
+import kotlin.math.abs
+import kotlin.math.min
 
 @SuppressLint("ViewConstructor")
 class ExpoImageViewWrapper(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
@@ -99,7 +104,7 @@ class ExpoImageView(
   private val outlineProvider = OutlineProvider(context)
 
   private var propsChanged = false
-  private var loadedSource: GlideUrl? = null
+  private var loadedSource: GlideModel? = null
 
   private val borderDrawableLazyHolder = lazy {
     ReactViewBackgroundDrawable(context).apply {
@@ -118,16 +123,72 @@ class ExpoImageView(
     }
   }
 
+  override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+    super.onLayout(changed, left, top, right, bottom)
+    onAfterUpdateTransaction()
+
+    if (drawable == null) {
+      return
+    }
+    applyTransformationMatrix()
+  }
+
+  fun applyTransformationMatrix() {
+    val imageRect = RectF(0f, 0f, drawable.intrinsicWidth.toFloat(), drawable.intrinsicHeight.toFloat())
+    val viewRect = RectF(0f, 0f, width.toFloat(), height.toFloat())
+
+    val matrix = contentFit.toMatrix(imageRect, viewRect)
+
+    val scaledImageRect = imageRect.transform(matrix)
+
+    imageMatrix = matrix.apply {
+      contentPosition.apply(this, scaledImageRect, viewRect)
+    }
+  }
+
   private val borderDrawable
     get() = borderDrawableLazyHolder.value
 
   init {
     clipToOutline = true
+    scaleType = ScaleType.MATRIX
     super.setOutlineProvider(outlineProvider)
   }
 
   // region Component Props
-  internal var sourceMap: SourceMap? = null
+  internal var sources: List<SourceMap> = emptyList()
+  private val bestSource: SourceMap?
+    get() {
+      if (sources.isEmpty()) {
+        return null
+      }
+
+      if (sources.size == 1) {
+        return sources.first()
+      }
+
+      val parent = parent as? ExpoImageViewWrapper ?: return null
+      val parentRect = Rect(0, 0, parent.width, parent.height)
+      if (parentRect.isEmpty) {
+        return null
+      }
+
+      val targetPixelCount = parentRect.width() * parentRect.height()
+
+      var bestSource: SourceMap? = null
+      var bestFit = Double.MAX_VALUE
+
+      sources.forEach {
+        val fit = abs(1 - (it.pixelCount / targetPixelCount))
+        if (fit < bestFit) {
+          bestFit = fit
+          bestSource = it
+        }
+      }
+
+      return bestSource
+    }
+
   internal var defaultSourceMap: SourceMap? = null
 
   internal var blurRadius: Int? = null
@@ -142,12 +203,19 @@ class ExpoImageView(
       propsChanged = true
     }
 
-  internal var resizeMode = ImageResizeMode.COVER.also { scaleType = it.getScaleType() }
+  internal var contentFit: ContentFit = ContentFit.Cover
     set(value) {
       field = value
-      scaleType = value.getScaleType()
       propsChanged = true
     }
+
+  internal var contentPosition: ContentPosition = ContentPosition.center
+    set(value) {
+      field = value
+      propsChanged = true
+    }
+
+  internal var priority: Priority = Priority.NORMAL
 
   internal fun setBorderRadius(position: Int, borderRadius: Float) {
     val isInvalidated = outlineProvider.setBorderRadius(borderRadius, position)
@@ -199,8 +267,10 @@ class ExpoImageView(
 
   // region ViewManager Lifecycle methods
   internal fun onAfterUpdateTransaction() {
-    val sourceToLoad = sourceMap?.createGlideUrl()
-    if (sourceToLoad == null) {
+    val bestSource = bestSource
+    val sourceToLoad = bestSource?.createGlideModel()
+
+    if (bestSource == null || sourceToLoad == null) {
       requestManager.clear(this)
       setImageDrawable(null)
       loadedSource = null
@@ -210,27 +280,41 @@ class ExpoImageView(
     if (sourceToLoad != loadedSource || propsChanged) {
       propsChanged = false
       loadedSource = sourceToLoad
-      val options = sourceMap?.createOptions() ?: RequestOptions()
+      val options = bestSource.createOptions(context).apply {
+        priority(this@ExpoImageView.priority.toGlidePriority())
+      }
+
       val propOptions = createPropOptions()
-      progressInterceptor.registerProgressListener(
-        sourceToLoad.toStringUrl(),
-        OkHttpProgressListener(expoImageViewWrapper)
-      )
+
+      if (sourceToLoad is GlideUrlModel) {
+        progressInterceptor.registerProgressListener(
+          sourceToLoad.glideData.toStringUrl(),
+          OkHttpProgressListener(expoImageViewWrapper)
+        )
+      }
 
       expoImageViewWrapper.get()?.onLoadStart?.invoke(Unit)
 
-      val defaultSourceToLoad = defaultSourceMap?.createGlideUrl()
+      val defaultSourceToLoad = defaultSourceMap?.createGlideModel()
       requestManager
         .asDrawable()
-        .load(sourceToLoad)
+        .load(sourceToLoad.glideData)
         .apply { if (defaultSourceToLoad != null) thumbnail(requestManager.load(defaultSourceToLoad)) }
         .apply(options)
         .downsample(DownsampleStrategy.NONE)
         .addListener(GlideRequestListener(expoImageViewWrapper))
+        .encodeQuality(100)
         .apply(propOptions)
         .into(object : DrawableImageViewTarget(this) {
           override fun getSize(cb: SizeReadyCallback) {
             cb.onSizeReady(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
+          }
+
+          override fun setResource(resource: Drawable?) {
+            super.setResource(resource)
+            if (resource != null) {
+              applyTransformationMatrix()
+            }
           }
         })
     }
@@ -247,7 +331,7 @@ class ExpoImageView(
     return RequestOptions()
       .apply {
         blurRadius?.let {
-          transform(BlurTransformation(it + 1, 4))
+          transform(BlurTransformation(min(it, 25), 4))
         }
         fadeDuration?.let {
           alpha = 0f
@@ -291,19 +375,20 @@ class ExpoImageView(
     }
   }
 
-  /**
-   * Called when Glide "injects" drawable into the view.
-   * When `resizeMode = REPEAT`, we need to update
-   * received drawable (unless null) and set correct tiling.
-   */
-  override fun setImageDrawable(drawable: Drawable?) {
-    val maybeUpdatedDrawable = drawable
-      ?.takeIf { resizeMode == ImageResizeMode.REPEAT }
-      ?.toBitmapDrawable(resources)
-      ?.apply {
-        setTileModeXY(Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
-      }
-    super.setImageDrawable(maybeUpdatedDrawable ?: drawable)
-  }
+  // TODO(@lukmccall): Fix `repeat`
+//  /**
+//   * Called when Glide "injects" drawable into the view.
+//   * When `resizeMode = REPEAT`, we need to update
+//   * received drawable (unless null) and set correct tiling.
+//   */
+//  override fun setImageDrawable(drawable: Drawable?) {
+//    val maybeUpdatedDrawable = drawable
+//      ?.takeIf { resizeMode == ImageResizeMode.REPEAT }
+//      ?.toBitmapDrawable(resources)
+//      ?.apply {
+//        setTileModeXY(Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
+//      }
+//    super.setImageDrawable(maybeUpdatedDrawable ?: drawable)
+//  }
   // endregion
 }

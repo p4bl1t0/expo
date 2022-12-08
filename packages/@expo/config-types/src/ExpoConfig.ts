@@ -210,6 +210,12 @@ export interface ExpoConfig {
        */
       keyid?: string;
     };
+    /**
+     * Extra HTTP headers to include in HTTP requests made by `expo-updates`. These may override preset headers.
+     */
+    requestHeaders?: {
+      [k: string]: any;
+    };
   };
   /**
    * Provide overrides by locale for System Dialog prompts like Permissions Boxes
