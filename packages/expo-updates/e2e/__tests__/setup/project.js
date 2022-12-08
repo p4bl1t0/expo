@@ -341,6 +341,9 @@ async function setupBasicAppAsync(projectRoot) {
 
   // move exported update to "updates" directory for EAS testing
   await fs.rename(path.join(projectRoot, 'dist'), path.join(projectRoot, 'updates'));
+
+  // remove yarn.lock so yarn will work on EAS
+  await fs.rm(path.join(projectRoot, 'yarn.lock'));
 }
 
 async function setupAssetsAppAsync(projectRoot, localCliBin) {
