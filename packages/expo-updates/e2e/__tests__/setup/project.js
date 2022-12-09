@@ -243,6 +243,7 @@ async function initAsync(projectRoot, { repoRoot, runtimeVersion, localCliBin })
     expo: {
       ...appJson.expo,
       name: projectName,
+      owner: 'expo-ci',
       runtimeVersion,
       plugins: ['expo-updates', '@config-plugins/detox'],
       android: { ...appJson.android, package: 'dev.expo.updatese2e' },
