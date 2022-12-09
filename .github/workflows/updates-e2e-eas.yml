@@ -71,8 +71,10 @@ jobs:
         run: yarn global add expo-cli
       - name: 🌳 Add EXPO_REPO_ROOT to environment
         run: echo "EXPO_REPO_ROOT=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-      - name: 🌐 Get local IP address
-        run: echo "UPDATES_HOST=$(ifconfig -l | xargs -n1 ipconfig getifaddr)" >> $GITHUB_ENV
+      - name: 🌐 Set updates host
+        run: echo "UPDATES_HOST=localhost" >> $GITHUB_ENV
+      - name: 🌐 Set updates port
+        run: echo "UPDATES_PORT=4747" >> $GITHUB_ENV
       - name: 📦 Get artifacts path
         run: mkdir -p artifact && echo "ARTIFACTS_DEST=$(pwd)/artifact" >> $GITHUB_ENV
       - name: 🚀 Setup test project and build
@@ -83,7 +85,7 @@ jobs:
         with:
           platform: 'android'
           profile: 'updates_testing'
-          projectRoot: '../updates-e2e'
+          projectRoot: '$(pwd)/../updates-e2e'
           expoToken: ${{ secrets.EAS_BUILD_BOT_TOKEN }}
           resourceClass: large
           noWait: ${{ github.event.schedule }}
