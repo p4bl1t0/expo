@@ -87,7 +87,7 @@ jobs:
         with:
           platform: 'android'
           profile: 'updates_testing'
-          projectRoot: $TEST_PROJECT_ROOT
+          projectRoot: './updates-e2e'
           expoToken: ${{ secrets.EAS_BUILD_BOT_TOKEN }}
           resourceClass: large
           noWait: ${{ github.event.schedule }}
