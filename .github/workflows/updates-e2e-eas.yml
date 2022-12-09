@@ -77,15 +77,17 @@ jobs:
         run: echo "UPDATES_PORT=4747" >> $GITHUB_ENV
       - name: 📦 Get artifacts path
         run: mkdir -p artifact && echo "ARTIFACTS_DEST=$(pwd)/artifact" >> $GITHUB_ENV
-      - name: 🚀 Setup test project and build
+      - name: 📦 Set test project location
+        run: echo "TEST_PROJECT_ROOT=$(EXPO_REPO_ROOT)/updates-e2e"
+      - name: 📦 Setup test project
         run: node packages/expo-updates/e2e/__tests__/setup/create-eas-project.js
-      - name: EAS build
+      - name: 🚀 Build with EAS
         uses: ./.github/actions/eas-build
         id: build
         with:
           platform: 'android'
           profile: 'updates_testing'
-          projectRoot: '$(pwd)/../updates-e2e'
+          projectRoot: '$TEST_PROJECT_ROOT'
           expoToken: ${{ secrets.EAS_BUILD_BOT_TOKEN }}
           resourceClass: large
           noWait: ${{ github.event.schedule }}
