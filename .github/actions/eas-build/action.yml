@@ -37,7 +37,9 @@ runs:
       id: build_start
       run: |
         if [[ -z "${COMMIT_MESSAGE}" ]]; then
+          # Fill in commit message
           COMMIT_MESSAGE=$(git log -1 --pretty=%B | head -c1000)
+          # Initialize project
           eas init --non-interactive
         fi
         MESSAGE="${MESSAGE:-$COMMIT_MESSAGE}"
