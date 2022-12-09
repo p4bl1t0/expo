@@ -252,6 +252,11 @@ async function initAsync(projectRoot, { repoRoot, runtimeVersion, localCliBin })
         ...appJson.updates,
         url: `http://${process.env.UPDATES_HOST}:${process.env.UPDATES_PORT}/update`,
       },
+      extra: {
+        eas: {
+          projectId: '55685a57-9cf3-442d-9ba8-65c7b39849ef',
+        },
+      },
     },
   };
   await fs.writeFile(path.join(projectRoot, 'app.json'), JSON.stringify(appJson, null, 2), 'utf-8');
