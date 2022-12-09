@@ -86,9 +86,9 @@ jobs:
       - name: 📦 Setup test project
 
         run: node packages/expo-updates/e2e/__tests__/setup/create-eas-project.js
-      - name: 🚀 Build with EAS
+      - name: 🚀 Build with EAS for Android
         uses: ./.github/actions/eas-build
-        id: build
+        id: build_android
         with:
           platform: 'android'
           profile: 'updates_testing'
@@ -97,10 +97,28 @@ jobs:
           resourceClass: large
           noWait: ${{ github.event.schedule }}
           message: ${{ github.event.pull_request.title }}
-      - name: On workflow canceled
-        if: ${{ cancelled() && steps.build.outputs.build_id }}
-        run: eas build:cancel ${{ steps.build.outputs.build_id }}
-        working-directory: ./apps/eas-expo-go
+      - name: 🚀 Build with EAS for iOS
+        uses: ./.github/actions/eas-build
+        id: build_ios
+        with:
+          platform: 'ios'
+          profile: 'updates_testing'
+          projectRoot: './updates-e2e'
+          expoToken: ${{ secrets.EAS_BUILD_BOT_TOKEN }}
+          resourceClass: large
+          noWait: ${{ github.event.schedule }}
+          message: ${{ github.event.pull_request.title }}
+      - name: On Android workflow canceled
+        if: ${{ cancelled() && steps.build_android.outputs.build_id }}
+        run: eas build:cancel ${{ steps.build_android.outputs.build_id }}
+        working-directory: './updates-e2e'
         env:
           EXPO_TOKEN: ${{ secrets.EAS_BUILD_BOT_TOKEN }}
-          EAS_BUILD_PROFILE: ${{ steps.profile.outputs.profile  }}
+          EAS_BUILD_PROFILE: updates_testing
+      - name: On iOS workflow canceled
+        if: ${{ cancelled() && steps.build_ios.outputs.build_id }}
+        run: eas build:cancel ${{ steps.build_ios.outputs.build_id }}
+        working-directory: './updates-e2e'
+        env:
+          EXPO_TOKEN: ${{ secrets.EAS_BUILD_BOT_TOKEN }}
+          EAS_BUILD_PROFILE: 'updates_testing'
