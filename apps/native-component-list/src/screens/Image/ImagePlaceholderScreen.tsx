@@ -1,4 +1,4 @@
-import { Image, ImageSource } from 'expo-image';
+import { Image, ImageCacheType, ImageSource } from 'expo-image';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -24,6 +24,7 @@ export default function ImagePlaceholderScreen() {
         style={styles.image}
         source={source ?? []}
         placeholder={require('../../../assets/images/exponent-icon.png')}
+        cacheType={ImageCacheType.NONE}
       />
 
       <View style={styles.actionsContainer}>

@@ -60,6 +60,10 @@ public final class ImageModule: Module {
         }
       }
 
+      Prop("cacheType") { (view, cacheType: ImageCacheType?) in
+        view.cacheType = cacheType ?? .disk
+      }
+
       OnViewDidUpdateProps { view in
         view.reload()
       }

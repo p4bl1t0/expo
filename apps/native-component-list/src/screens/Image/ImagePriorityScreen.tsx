@@ -1,4 +1,4 @@
-import { Image, ImageCachePolicy, ImageContentFit, ImagePriority } from 'expo-image';
+import { Image, ImageCacheType, ImageContentFit, ImagePriority } from 'expo-image';
 import { useState } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 
@@ -11,7 +11,7 @@ export default function ImagePriorityScreen() {
   const defaultProps = {
     style: styles.image,
     contentFit: ImageContentFit.COVER,
-    cachePolicy: ImageCachePolicy.NONE,
+    cacheType: ImageCacheType.NONE,
   };
   return (
     <View style={styles.container}>

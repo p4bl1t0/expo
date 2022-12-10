@@ -90,9 +90,9 @@ export type ImageProps = AccessibilityProps & {
   /**
    * Determines whether to cache the image and where: on the disk, in the memory or both.
    * > Note: Memory cache may be purged very quickly to prevent high memory usage and the risk of out of memory exceptions.
-   * @default ImageCachePolicy.DISK
+   * @default ImageCacheType.DISK
    */
-  cachePolicy?: ImageCachePolicy | null;
+  cacheType?: ImageCacheType | null;
 
   /**
    * Called when the image starts to load.
@@ -257,12 +257,6 @@ export enum ImageTransitionEffect {
 }
 
 export enum ImageCacheType {
-  NONE = 'none',
-  DISK = 'disk',
-  MEMORY = 'memory',
-}
-
-export enum ImageCachePolicy {
   NONE = 'none',
   DISK = 'disk',
   MEMORY = 'memory',
