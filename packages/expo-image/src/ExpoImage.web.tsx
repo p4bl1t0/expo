@@ -14,7 +14,7 @@ import {
 } from './Image.types';
 import { resolveContentFit, resolveContentPosition } from './utils';
 
-const resolveAssetSource = (source?: ImageUriSource | RequireSource | null) => {
+function resolveAssetSource(source?: ImageUriSource | RequireSource | null) {
   if (source == null) return null;
 
   if (typeof source === 'string') {
@@ -27,7 +27,7 @@ const resolveAssetSource = (source?: ImageUriSource | RequireSource | null) => {
   return source;
 }
 
-const ensureUnit = (value: string | number) => {
+function ensureUnit(value: string | number) {
   const trimmedValue = String(value).trim();
   if (trimmedValue.endsWith('%')) {
     return trimmedValue;
@@ -62,7 +62,7 @@ function getObjectPositionFromContentPosition(contentPosition?: ImageContentPosi
     .join(' ');
 }
 
-const ensureIsArray = (source?: ImageSource): (ImageUriSource | RequireSource)[] => {
+function ensureIsArray(source?: ImageSource): (ImageUriSource | RequireSource)[] {
   if (Array.isArray(source)) {
     return source;
   }
@@ -73,7 +73,7 @@ const ensureIsArray = (source?: ImageSource): (ImageUriSource | RequireSource)[]
 };
 
 type ImageState = 'empty' | 'loading' | 'loaded' | 'error';
-const useImageState = (source: ImageSource | undefined) => {
+function useImageState(source: ImageSource | undefined) {
   const [imageState, setImageState] = React.useState<ImageState>(source ? 'loading' : 'empty');
   React.useEffect(() => {
     setImageState((prevState) =>
@@ -103,10 +103,10 @@ const getCSSTiming = (timing?: ImageTransitionTiming) => {
   }[timing || ImageTransitionTiming.LINEAR];
 };
 
-const useTransition = (
+function useTransition(
   transition: ImageTransition | null | undefined,
   state: ImageState
-): Record<'placeholder' | 'image', Partial<React.CSSProperties>> => {
+): Record<'placeholder' | 'image', Partial<React.CSSProperties>> {
   if (!transition?.effect) return { placeholder: {}, image: {} };
   const { duration, timing, effect } = {
     timing: ImageTransitionTiming.EASE_IN_OUT,
@@ -179,7 +179,7 @@ export default function ExpoImage({
         position: 'relative',
       }}>
       <img
-        src={resolveAssetSource(placeholder)?.uri}
+        src={ensureIsArray(source).map(resolveAssetSource)?.[0]?.uri}
         style={{
           width: '100%',
           height: '100%',
