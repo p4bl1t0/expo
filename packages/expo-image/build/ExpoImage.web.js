@@ -19,7 +19,6 @@ function ensureUnit(value) {
     }
     return `${trimmedValue}px`;
 }
-;
 function getObjectPositionFromContentPosition(contentPosition) {
     const resolvedPosition = (typeof contentPosition === 'string' ? resolveContentPosition(contentPosition) : contentPosition);
     if (!resolvedPosition) {
@@ -49,7 +48,6 @@ function ensureIsArray(source) {
     }
     return [source];
 }
-;
 function useImageState(source) {
     const [imageState, setImageState] = React.useState(source ? 'loading' : 'empty');
     React.useEffect(() => {
@@ -61,7 +59,6 @@ function useImageState(source) {
     }), [onLoad]);
     return [imageState, handlers];
 }
-;
 const getCSSTiming = (timing) => {
     return {
         [ImageTransitionTiming.EASE_IN]: 'ease-in',
@@ -70,7 +67,7 @@ const getCSSTiming = (timing) => {
         [ImageTransitionTiming.LINEAR]: 'linear',
     }[timing || ImageTransitionTiming.LINEAR];
 };
-const useTransition = (transition, state) => {
+function useTransition(transition, state) {
     if (!transition?.effect)
         return { placeholder: {}, image: {} };
     const { duration, timing, effect } = {
@@ -112,7 +109,7 @@ const useTransition = (transition, state) => {
         };
     }
     return { placeholder: {}, image: {} };
-};
+}
 export default function ExpoImage({ source, placeholder, loadingIndicatorSource, contentPosition, onLoad, transition, onLoadStart, onLoadEnd, onError, ...props }) {
     const { aspectRatio, backgroundColor, transform, borderColor, ...style } = props.style ?? {};
     const [state, handlers] = useImageState(source);
@@ -127,7 +124,7 @@ export default function ExpoImage({ source, placeholder, loadingIndicatorSource,
             overflow: 'hidden',
             position: 'relative',
         } },
-        React.createElement("img", { src: resolveAssetSource(placeholder)?.uri, style: {
+        React.createElement("img", { src: ensureIsArray(source).map(resolveAssetSource)?.[0]?.uri, style: {
                 width: '100%',
                 height: '100%',
                 position: 'absolute',
