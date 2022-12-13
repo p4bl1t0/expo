@@ -149,6 +149,69 @@ function useTransition(
   return { placeholder: {}, image: {} };
 }
 
+const findBestSourceForSize = (sources: ImageUriSource[], size: DOMRect | null) => {
+  return (
+    sources
+      // look for the smallest image that's still larger then a container
+      .map((source) => {
+        if (!size) return { source, penalty: 0, covers: false };
+        const { width, height } = source;
+        if (width == null || height == null) return { source, penalty: 0, covers: false };
+        if (width < size.width || height < size.height)
+          return {
+            source,
+            penalty: Math.max(size.width - width, size.height - height),
+            covers: false,
+          };
+        return { source, penalty: (width - size.width) * (height - size.height), covers: true };
+      })
+      .sort((a, b) => b.penalty - a.penalty)
+      .sort((a, b) => Number(a.covers) - Number(b.covers))
+      .at(-1)?.source ?? null
+  );
+};
+
+const useSourceSelection = (
+  sources: ImageUriSource[],
+  sizeCalculation: 'initial' | 'live' = 'initial'
+) => {
+  // undefined - not calculated yet, don't fetch any images, null - no size available, pick arbitrary image, DOMRect - size available
+  const [size, setSize] = React.useState<null | undefined | DOMRect>(undefined);
+  const resizeObserver = React.useRef<ResizeObserver | null>(null);
+
+  React.useEffect(() => {
+    const timeout = setTimeout(() => {
+      setSize((s) => (s === undefined ? null : s));
+    }, 200);
+    return () => {
+      clearTimeout(timeout);
+      resizeObserver.current?.disconnect();
+    }
+  }, []);
+
+  const containerRef = React.useCallback((element: HTMLDivElement) => {
+    if (sizeCalculation === 'initial') {
+      setSize(element?.getBoundingClientRect());
+    } else if (sizeCalculation === 'live') {
+      resizeObserver.current?.disconnect();
+      if (!element) return;
+      resizeObserver.current = new ResizeObserver((entries) => {
+        setSize(entries[0].contentRect);
+      });
+      resizeObserver.current.observe(element);
+    }
+  }, []);
+
+  const source = size !== undefined ? findBestSourceForSize(sources, size) : null;
+  return React.useMemo(
+    () => ({
+      containerRef,
+      source,
+    }),
+    [source]
+  );
+};
+
 export default function ExpoImage({
   source,
   placeholder,
@@ -159,16 +222,22 @@ export default function ExpoImage({
   onLoadStart,
   onLoadEnd,
   onError,
+  webResponsivePolicy,
   ...props
 }: ImageProps) {
   const { aspectRatio, backgroundColor, transform, borderColor, ...style } = props.style ?? {};
   const [state, handlers] = useImageState(source);
   const { placeholder: placeholderStyle, image: imageStyle } = useTransition(transition, state);
-
-  const resolvedSources = ensureIsArray(source).map(resolveAssetSource);
-
+  const resolvedSources = ensureIsArray(source)
+    .map(resolveAssetSource)
+    .filter(Boolean) as ImageUriSource[];
+  const { containerRef, source: selectedSource } = useSourceSelection(
+    resolvedSources,
+    webResponsivePolicy
+  );
   return (
     <div
+      ref={containerRef}
       style={{
         aspectRatio: String(aspectRatio),
         backgroundColor: backgroundColor?.toString(),
@@ -192,7 +261,7 @@ export default function ExpoImage({
         }}
       />
       <img
-        src={resolvedSources.at(0)?.uri}
+        src={selectedSource?.uri}
         style={{
           width: '100%',
           height: '100%',
