@@ -1,3 +1,4 @@
+import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource';
 import { ImageContentFit, ImageResizeMode, } from './Image.types';
 let loggedResizeModeDeprecationWarning = false;
 let loggedRepeatDeprecationWarning = false;
@@ -31,7 +32,7 @@ export function resolveContentFit(contentFit, resizeMode) {
                 }
         }
     }
-    return ImageContentFit.CONTAIN;
+    return ImageContentFit.COVER;
 }
 /**
  * It resolves a stringified form of the `contentPosition` prop to an object,
@@ -83,5 +84,34 @@ export function resolveTransition(transition, fadeDuration) {
         return { duration: fadeDuration };
     }
     return transition;
+}
+function isBlurhashString(str) {
+    return /^(blurhash:\/)?[\w#$%*+,\-.:;=?@[\]^_{}|~]+(\/[\d.]+)*$/.test(str);
+}
+function resolveBlurhashString(str) {
+    const [hash, width, height] = str.replace(/^blurhash:\//, '').split('/');
+    return {
+        uri: `blurhash:/${hash}`,
+        width: parseInt(width, 10) ?? 16,
+        height: parseInt(height, 10) ?? 16,
+    };
+}
+function resolveSource(source) {
+    if (typeof source === 'string') {
+        if (isBlurhashString(source)) {
+            return resolveBlurhashString(source);
+        }
+        return { uri: source };
+    }
+    if (typeof source === 'number') {
+        return resolveAssetSource(source);
+    }
+    return source ?? null;
+}
+export function resolveSources(sources) {
+    if (Array.isArray(sources)) {
+        return sources.map(resolveSource).filter(Boolean);
+    }
+    return [resolveSource(sources)].filter(Boolean);
 }
 //# sourceMappingURL=utils.js.map

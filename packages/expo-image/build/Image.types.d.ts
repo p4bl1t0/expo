@@ -26,17 +26,16 @@ export type ImageStyle = RNImageStyle & {
     resizeMode?: ImageResizeMode;
     elevation?: number;
 };
-type RequireSource = number | string;
 export type ImageProps = AccessibilityProps & {
     style?: ImageStyle;
     /**
      * The image source (either a remote URL or a local file resource).
      */
-    source?: ImageSource | RequireSource | (ImageSource | RequireSource)[];
+    source?: ImageSource | string | number | ImageSource[] | string[] | null;
     /**
      * A static image to display while loading the image source.
      */
-    placeholder?: ImageSource | ImageSource[] | number;
+    placeholder?: ImageSource | string | number | ImageSource[] | string[] | null;
     /**
      * A static image to display while loading the image source.
      * @platform android
@@ -112,6 +111,13 @@ export type ImageProps = AccessibilityProps & {
      */
     onLoadEnd?: () => void;
 };
+/**
+ * @hidden
+ */
+export interface ImageNativeProps extends ImageProps {
+    source?: ImageSource[];
+    placeholder?: ImageSource[];
+}
 /**
  * Determines how the image should be resized to fit its container.
  */
@@ -257,5 +263,4 @@ export type ImageProgressEventData = {
 export type ImageErrorEventData = {
     error: string;
 };
-export {};
 //# sourceMappingURL=Image.types.d.ts.map

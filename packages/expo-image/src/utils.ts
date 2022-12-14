@@ -1,10 +1,14 @@
+import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource';
+
 import {
   ImageContentFit,
   ImageContentPosition,
   ImageContentPositionObject,
   ImageContentPositionString,
+  ImageNativeProps,
   ImageProps,
   ImageResizeMode,
+  ImageSource,
 } from './Image.types';
 
 let loggedResizeModeDeprecationWarning = false;
@@ -44,7 +48,7 @@ export function resolveContentFit(
         }
     }
   }
-  return ImageContentFit.CONTAIN;
+  return ImageContentFit.COVER;
 }
 
 /**
@@ -107,4 +111,37 @@ export function resolveTransition(
     return { duration: fadeDuration };
   }
   return transition;
+}
+
+function isBlurhashString(str: string): boolean {
+  return /^(blurhash:\/)?[\w#$%*+,\-.:;=?@[\]^_{}|~]+(\/[\d.]+)*$/.test(str);
+}
+
+function resolveBlurhashString(str: string): ImageSource {
+  const [hash, width, height] = str.replace(/^blurhash:\//, '').split('/');
+  return {
+    uri: `blurhash:/${hash}`,
+    width: parseInt(width, 10) ?? 16,
+    height: parseInt(height, 10) ?? 16,
+  };
+}
+
+function resolveSource(source?: ImageSource | string | number | null): ImageSource | null {
+  if (typeof source === 'string') {
+    if (isBlurhashString(source)) {
+      return resolveBlurhashString(source);
+    }
+    return { uri: source };
+  }
+  if (typeof source === 'number') {
+    return resolveAssetSource(source);
+  }
+  return source ?? null;
+}
+
+export function resolveSources(sources?: ImageProps['source']): ImageNativeProps['source'] {
+  if (Array.isArray(sources)) {
+    return sources.map(resolveSource).filter(Boolean) as ImageSource[];
+  }
+  return [resolveSource(sources)].filter(Boolean) as ImageSource[];
 }

@@ -1,7 +1,6 @@
 import { requireNativeViewManager, requireNativeModule } from 'expo-modules-core';
 import React from 'react';
-import { Image, StyleSheet, Platform, processColor } from 'react-native';
-import { resolveContentFit, resolveContentPosition, resolveTransition } from './utils';
+import { StyleSheet, Platform, processColor } from 'react-native';
 const NativeExpoImage = requireNativeViewManager('ExpoImage');
 const ExpoImageModule = requireNativeModule('ExpoImage');
 function withDeprecatedNativeEvent(event) {
@@ -32,25 +31,16 @@ class ExpoImage extends React.PureComponent {
         this.props.onLoadEnd?.();
     };
     render() {
-        const { source, style, defaultSource, loadingIndicatorSource, ...props } = this.props;
-        const resolvedSource = Image.resolveAssetSource(source ?? {});
-        const resolvedStyle = StyleSheet.flatten([style]);
-        const resolvedPlaceholder = Image.resolveAssetSource(props.placeholder ?? defaultSource ?? loadingIndicatorSource ?? {});
-        const contentFit = resolveContentFit(props.contentFit, props.resizeMode);
-        const contentPosition = resolveContentPosition(props.contentPosition);
-        const transition = resolveTransition(props.transition, props.fadeDuration);
-        // If both are specified, we default to use default source
-        if (defaultSource && loadingIndicatorSource) {
-            console.warn("<Image> component can't have both defaultSource and loadingIndicatorSource at the same time. Defaulting to defaultSource");
-        }
+        const { style, ...props } = this.props;
+        const resolvedStyle = StyleSheet.flatten(style);
         // When possible, pass through the intrinsic size of the asset to the Yoga layout
         // system. While this is also possible in native code, doing it here is more efficient
         // as the yoga node gets initialized with the correct size from the start.
         // In native code, there is a separation between the layout (shadow) nodes and
         // actual views. Views that update the intrinsic content-size in Yoga trigger
         // additional layout passes, which we want to prevent.
-        if (!Array.isArray(resolvedSource)) {
-            const { width, height } = resolvedSource;
+        if (props.source?.length === 1) {
+            const { width, height } = props.source[0];
             resolvedStyle.width = resolvedStyle.width ?? width;
             resolvedStyle.height = resolvedStyle.height ?? height;
         }
@@ -105,7 +95,7 @@ class ExpoImage extends React.PureComponent {
         const borderTopColor = processColor(resolvedStyle.borderTopColor);
         // @ts-ignore
         const borderBottomColor = processColor(resolvedStyle.borderBottomColor);
-        return (React.createElement(NativeExpoImage, { ...props, ...resolvedStyle, source: Array.isArray(resolvedSource) ? resolvedSource : [resolvedSource], style: resolvedStyle, placeholder: resolvedPlaceholder, contentFit: contentFit, contentPosition: contentPosition, transition: transition, onLoadStart: this.onLoadStart, onLoad: this.onLoad, onProgress: this.onProgress, onError: this.onError, 
+        return (React.createElement(NativeExpoImage, { ...props, ...resolvedStyle, style: resolvedStyle, onLoadStart: this.onLoadStart, onLoad: this.onLoad, onProgress: this.onProgress, onError: this.onError, 
             // @ts-ignore
             tintColor: tintColor, borderColor: borderColor, borderLeftColor: borderLeftColor, borderRightColor: borderRightColor, borderTopColor: borderTopColor, borderBottomColor: borderBottomColor, borderStartColor: borderStartColor, borderEndColor: borderEndColor, backgroundColor: backgroundColor }));
     }
