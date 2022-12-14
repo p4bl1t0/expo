@@ -132,10 +132,13 @@ const findBestSourceForSize = (sources, size) => {
         .at(-1)?.source ?? null);
 };
 const useSourceSelection = (sources, sizeCalculation = 'initial') => {
+    const hasMoreThanOneSource = sources.length > 1;
     // undefined - not calculated yet, don't fetch any images, null - no size available, pick arbitrary image, DOMRect - size available
     const [size, setSize] = React.useState(undefined);
     const resizeObserver = React.useRef(null);
     React.useEffect(() => {
+        if (!hasMoreThanOneSource)
+            return;
         const timeout = setTimeout(() => {
             setSize((s) => (s === undefined ? null : s));
         }, 200);
@@ -143,8 +146,10 @@ const useSourceSelection = (sources, sizeCalculation = 'initial') => {
             clearTimeout(timeout);
             resizeObserver.current?.disconnect();
         };
-    }, []);
+    }, [hasMoreThanOneSource]);
     const containerRef = React.useCallback((element) => {
+        if (!hasMoreThanOneSource)
+            return;
         if (sizeCalculation === 'initial') {
             setSize(element?.getBoundingClientRect());
         }
@@ -157,8 +162,9 @@ const useSourceSelection = (sources, sizeCalculation = 'initial') => {
             });
             resizeObserver.current.observe(element);
         }
-    }, []);
-    const source = size !== undefined ? findBestSourceForSize(sources, size) : null;
+    }, [hasMoreThanOneSource]);
+    const bestSourceForSize = size !== undefined ? findBestSourceForSize(sources, size) : null;
+    const source = hasMoreThanOneSource ? bestSourceForSize : sources[0];
     return React.useMemo(() => ({
         containerRef,
         source,

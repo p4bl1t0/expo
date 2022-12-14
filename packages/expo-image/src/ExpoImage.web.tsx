@@ -175,34 +175,42 @@ const useSourceSelection = (
   sources: ImageUriSource[],
   sizeCalculation: 'initial' | 'live' = 'initial'
 ) => {
+  const hasMoreThanOneSource = sources.length > 1;
+
   // undefined - not calculated yet, don't fetch any images, null - no size available, pick arbitrary image, DOMRect - size available
   const [size, setSize] = React.useState<null | undefined | DOMRect>(undefined);
   const resizeObserver = React.useRef<ResizeObserver | null>(null);
 
   React.useEffect(() => {
+    if (!hasMoreThanOneSource) return;
     const timeout = setTimeout(() => {
       setSize((s) => (s === undefined ? null : s));
     }, 200);
     return () => {
       clearTimeout(timeout);
       resizeObserver.current?.disconnect();
-    }
-  }, []);
+    };
+  }, [hasMoreThanOneSource]);
 
-  const containerRef = React.useCallback((element: HTMLDivElement) => {
-    if (sizeCalculation === 'initial') {
-      setSize(element?.getBoundingClientRect());
-    } else if (sizeCalculation === 'live') {
-      resizeObserver.current?.disconnect();
-      if (!element) return;
-      resizeObserver.current = new ResizeObserver((entries) => {
-        setSize(entries[0].contentRect);
-      });
-      resizeObserver.current.observe(element);
-    }
-  }, []);
+  const containerRef = React.useCallback(
+    (element: HTMLDivElement) => {
+      if (!hasMoreThanOneSource) return;
+      if (sizeCalculation === 'initial') {
+        setSize(element?.getBoundingClientRect());
+      } else if (sizeCalculation === 'live') {
+        resizeObserver.current?.disconnect();
+        if (!element) return;
+        resizeObserver.current = new ResizeObserver((entries) => {
+          setSize(entries[0].contentRect);
+        });
+        resizeObserver.current.observe(element);
+      }
+    },
+    [hasMoreThanOneSource]
+  );
 
-  const source = size !== undefined ? findBestSourceForSize(sources, size) : null;
+  const bestSourceForSize = size !== undefined ? findBestSourceForSize(sources, size) : null;
+  const source = hasMoreThanOneSource ? bestSourceForSize : sources[0];
   return React.useMemo(
     () => ({
       containerRef,
