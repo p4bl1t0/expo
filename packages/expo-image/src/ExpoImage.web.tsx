@@ -3,24 +3,10 @@ import React from 'react';
 import {
   ImageContentPosition,
   ImageContentPositionObject,
-  ImageProps,
-  ImageSource,
+  ImageNativeProps,
   PositionValue,
 } from './Image.types';
-import { resolveContentFit, resolveContentPosition } from './utils';
-
-function resolveAssetSource(source?: ImageSource | string | number | null) {
-  if (source == null) return null;
-
-  if (typeof source === 'string') {
-    return { uri: source };
-  }
-  if (typeof source === 'number') {
-    return { uri: String(source) };
-  }
-
-  return source;
-}
+import { resolveContentPosition } from './utils';
 
 function ensureUnit(value: string | number) {
   const trimmedValue = String(value).trim();
@@ -32,13 +18,13 @@ function ensureUnit(value: string | number) {
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 
-function getObjectPositionFromContentPosition(contentPosition?: ImageContentPosition) {
+function getObjectPositionFromContentPosition(contentPosition?: ImageContentPosition): string {
   const resolvedPosition = (
     typeof contentPosition === 'string' ? resolveContentPosition(contentPosition) : contentPosition
   ) as Record<KeysOfUnion<ImageContentPositionObject>, PositionValue>;
 
   if (!resolvedPosition) {
-    return null;
+    return '50% 50%';
   }
   if (resolvedPosition.top == null || resolvedPosition.bottom == null) {
     resolvedPosition.top = '50%';
@@ -47,39 +33,30 @@ function getObjectPositionFromContentPosition(contentPosition?: ImageContentPosi
     resolvedPosition.left = '50%';
   }
 
-  return ['top', 'bottom', 'left', 'right']
-    .map((key) => {
-      if (key in resolvedPosition) {
-        return `${key} ${ensureUnit(resolvedPosition[key])}`;
-      }
-      return '';
-    })
-    .join(' ');
+  return (
+    ['top', 'bottom', 'left', 'right']
+      .map((key) => {
+        if (key in resolvedPosition) {
+          return `${key} ${ensureUnit(resolvedPosition[key])}`;
+        }
+        return '';
+      })
+      .join(' ') || '50% 50%'
+  );
 }
-
-const ensureIsArray = <T extends any>(source: T | T[] | undefined) => {
-  if (Array.isArray(source)) {
-    return source;
-  }
-  if (source == null) {
-    return [];
-  }
-  return [source];
-};
 
 export default function ExpoImage({
   source,
-  defaultSource,
-  loadingIndicatorSource,
+  contentFit,
   contentPosition,
   onLoad,
   onLoadStart,
   onLoadEnd,
   onError,
   ...props
-}: ImageProps) {
+}: ImageNativeProps) {
   const { aspectRatio, backgroundColor, transform, borderColor, ...style } = props.style ?? {};
-  const resolvedSources = ensureIsArray(source).map(resolveAssetSource);
+
   return (
     <>
       <picture
@@ -88,7 +65,7 @@ export default function ExpoImage({
           ...style,
         }}>
         <img
-          src={resolvedSources.at(0)?.uri}
+          src={source?.[0]?.uri}
           style={{
             width: '100%',
             height: '100%',
@@ -96,8 +73,8 @@ export default function ExpoImage({
             backgroundColor: backgroundColor?.toString(),
             transform: transform?.toString(),
             borderColor: borderColor?.toString(),
-            objectFit: resolveContentFit(props.contentFit, props.resizeMode),
-            objectPosition: getObjectPositionFromContentPosition(contentPosition) || undefined,
+            objectFit: contentFit,
+            objectPosition: getObjectPositionFromContentPosition(contentPosition),
           }}
         />
       </picture>

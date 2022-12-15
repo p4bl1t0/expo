@@ -1,4 +1,4 @@
-import { ImageContentFit, ImageContentPosition, ImageContentPositionObject, ImageNativeProps, ImageProps, ImageResizeMode } from './Image.types';
+import { ImageContentFit, ImageContentPosition, ImageContentPositionObject, ImageProps, ImageResizeMode } from './Image.types';
 /**
  * If the `contentFit` is not provided, it's resolved from the equivalent `resizeMode` prop
  * that we support to provide compatibility with React Native Image.
@@ -14,5 +14,4 @@ export declare function resolveContentPosition(contentPosition?: ImageContentPos
  * When `fadeDuration` is used, it logs an appropriate deprecation warning.
  */
 export declare function resolveTransition(transition?: ImageProps['transition'], fadeDuration?: ImageProps['fadeDuration']): ImageProps['transition'];
-export declare function resolveSources(sources?: ImageProps['source']): ImageNativeProps['source'];
 //# sourceMappingURL=utils.d.ts.map

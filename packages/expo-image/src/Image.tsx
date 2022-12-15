@@ -3,12 +3,10 @@ import { StyleSheet } from 'react-native';
 
 import ExpoImage, { ExpoImageModule } from './ExpoImage';
 import { ImageProps } from './Image.types';
-import {
-  resolveContentFit,
-  resolveContentPosition,
-  resolveSources,
-  resolveTransition,
-} from './utils';
+import { resolveContentFit, resolveContentPosition, resolveTransition } from './utils';
+import { resolveSources } from './utils/resolveSources';
+
+let loggedDefaultSourceDeprecationWarning = false;
 
 export class Image extends React.PureComponent<ImageProps> {
   /**
@@ -55,6 +53,13 @@ export class Image extends React.PureComponent<ImageProps> {
 
     const { resizeMode: resizeModeStyle, ...restStyle } = StyleSheet.flatten(style) || {};
     const resizeMode = resizeModeProp ?? resizeModeStyle;
+
+    if ((defaultSource || loadingIndicatorSource) && !loggedDefaultSourceDeprecationWarning) {
+      console.warn(
+        '[expo-image]: `defaultSource` and `loadingIndicatorSource` props are deprecated, use `placeholder` instead'
+      );
+      loggedDefaultSourceDeprecationWarning = true;
+    }
 
     return (
       <ExpoImage

@@ -20,6 +20,14 @@ export type ImageSource = {
    * will be used to set the default `<Image/>` component dimension
    */
   height?: number;
+
+  /**
+   * The blurhash string to use to generate the image. You can read more about the blurhash
+   * on [`woltapp/blurhash`](https://github.com/woltapp/blurhash) repo. Ignored when `uri` is provided.
+   * When using the blurhash, you should also provide `width` and `height` (higher values reduce performance),
+   * otherwise their default value is `16`.
+   */
+  blurhash?: string;
 };
 
 export type ImageStyle = RNImageStyle & {
