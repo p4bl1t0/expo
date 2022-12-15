@@ -43,7 +43,7 @@ describe('test-suite', () => {
           },
         });
 
-        const launchWaitingTime = platform === 'ios' ? 1000 : 5000;
+        const launchWaitingTime = platform === 'ios' ? 5000 : 5000;
         await sleepAsync(launchWaitingTime);
 
         await expect(element(by.id('test_suite_container'))).toExist();
